@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TalentRank - Enterprise Batch Resume Assessment</title>
+    <!-- Modern Sans Serif Font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- FontAwesome for standard interface icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="app-wrapper">
+        <!-- Top Navigation -->
+        <header class="app-nav">
+            <div class="brand">
+                <i class="fa-solid fa-rectangle-list"></i>
+                <div class="brand-text">
+                    <h1>TalentRank</h1>
+                    <span>Enterprise Batch Screener</span>
+                </div>
+            </div>
+            <div class="nav-controls">
+                <div class="control-item">
+                    <label for="provider-select"><i class="fa-solid fa-microchip"></i> Engine:</label>
+                    <select id="provider-select" class="clean-select">
+                        <option value="groq" selected>Groq (Llama-3.3-70b)</option>
+                        <option value="gemini">Gemini (Gemini-2.0-Flash)</option>
+                    </select>
+                </div>
+                <div class="env-tag">Production</div>
+            </div>
+        </header>
+
+        <!-- Main Workspace Grid -->
+        <main class="grid-workspace">
+            
+            <!-- Left Config Panel -->
+            <section class="config-sidebar">
+                <div class="card card-dense">
+                    <div class="card-title">
+                        <h3><i class="fa-solid fa-briefcase"></i> Job Configuration</h3>
+                    </div>
+                    <div class="form-field">
+                        <div class="field-header">
+                            <label for="jd-select">Load Template Requirements:</label>
+                            <select id="jd-select" class="clean-select compact">
+                                <option value="">-- Choose Template --</option>
+                            </select>
+                        </div>
+                        <textarea id="jd-text" class="clean-textarea" placeholder="Paste the job requirements, key technical skills, experience targets and preferred credentials here..."></textarea>
+                    </div>
+                </div>
+
+                <div class="card card-dense mt-16">
+                    <div class="card-title">
+                        <h3><i class="fa-solid fa-folder-open"></i> Resume Intake</h3>
+                    </div>
+                    <p class="section-hint">Upload custom candidate files or parse preloaded hackathon sets in batch.</p>
+                    
+                    <!-- Batch Upload zone -->
+                    <div class="drop-zone" id="drop-zone">
+                        <input type="file" id="batch-files" accept=".pdf,.docx,.txt" multiple style="display:none;">
+                        <i class="fa-solid fa-arrow-up-from-bracket"></i>
+                        <h4>Upload Resumes</h4>
+                        <p>Select multiple PDFs, Word documents or text files</p>
+                        <button class="btn btn-outline" onclick="document.getElementById('batch-files').click()">
+                            Browse Files
+                        </button>
+                    </div>
+                    
+                    <div class="selected-files-list hidden" id="file-list-container">
+                        <div class="file-list-header">
+                            <span id="file-count">0 files selected</span>
+                            <button id="clear-files-btn" class="btn-text-danger">Clear</button>
+                        </div>
+                        <div class="file-scroll" id="file-scroll-list"></div>
+                    </div>
+
+                    <div class="divider"></div>
+
+                    <!-- Direct Batch Operations -->
+                    <div class="btn-group">
+                        <button id="btn-run-batch" class="btn btn-primary btn-full">
+                            <span class="btn-text"><i class="fa-solid fa-wand-magic-sparkles"></i> Screen Uploaded Batch</span>
+                            <div class="spinner"></div>
+                        </button>
+                        
+                        <button id="btn-demo-batch" class="btn btn-secondary btn-full mt-8">
+                            <i class="fa-solid fa-database"></i> Load & Screen Hackathon Sample Batch
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Right Dashboard View -->
+            <section class="dashboard-area">
+                
+                <!-- Welcome/State Card -->
+                <div class="card flex-center empty-dashboard" id="empty-state">
+                    <i class="fa-solid fa-list-check empty-icon"></i>
+                    <h2>No Screening Batches Processed</h2>
+                    <p>Configure your target job requirements, upload a batch of candidate resumes (supports up to 500+ candidates), and launch the agentic screening. The pipeline evaluates each resume concurrently and outputs a ranked checklist of candidates.</p>
+                </div>
+
+                <!-- Processing / Concurrent Queue State -->
+                <div class="card flex-center loading-dashboard hidden" id="loading-state">
+                    <div class="custom-progress-circle">
+                        <i class="fa-solid fa-arrows-spin spin-icon"></i>
+                    </div>
+                    <h2 id="loading-title">Analyzing Batch Concurrently...</h2>
+                    <p id="loading-status">The multi-agent network is parsing structural layouts and cross-matching skills via asyncio processing queues.</p>
+                    
+                    <!-- Simulating concurrent progression -->
+                    <div class="progress-bar-container">
+                        <div class="progress-bar-fill" id="batch-progress-fill" style="width: 0%"></div>
+                    </div>
+                    <div class="progress-stats" id="batch-progress-stats">Processing 0%...</div>
+                </div>
+
+                <!-- Main Ranked Table Dashboard -->
+                <div class="dashboard-results hidden" id="results-dashboard">
+                    
+                    <!-- KPI Analytics Stats Bar -->
+                    <div class="kpi-grid">
+                        <div class="kpi-card">
+                            <span class="kpi-label">Total Evaluated</span>
+                            <h2 id="kpi-total">0</h2>
+                        </div>
+                        <div class="kpi-card text-success">
+                            <span class="kpi-label">Highly Recommended (Score ≥ 70%)</span>
+                            <h2 id="kpi-shortlisted">0</h2>
+                        </div>
+                        <div class="kpi-card text-warning">
+                            <span class="kpi-label">Under Review (40% - 69%)</span>
+                            <h2 id="kpi-review">0</h2>
+                        </div>
+                        <div class="kpi-card text-danger">
+                            <span class="kpi-label">Low Match (< 40%)</span>
+                            <h2 id="kpi-rejected">0</h2>
+                        </div>
+                    </div>
+
+                    <!-- Main Ranked Table Card -->
+                    <div class="card mt-16">
+                        <div class="table-action-bar">
+                            <div class="table-title-area">
+                                <h2>Ranked Candidate Shortlist</h2>
+                                <span class="table-subtitle" id="table-subtitle-count">Top candidates ranked by semantic fit</span>
+                            </div>
+                            <div class="table-actions">
+                                <button id="btn-export-csv" class="btn btn-outline btn-dense">
+                                    <i class="fa-solid fa-file-csv"></i> Export Shortlist (CSV)
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- High-density Data Table -->
+                        <div class="table-scroll-container">
+                            <table class="ranked-table">
+                                <thead>
+                                    <tr>
+                                        <th style="width: 60px;">Rank</th>
+                                        <th>Candidate Name</th>
+                                        <th style="width: 110px;">Match Score</th>
+                                        <th>Recommendation</th>
+                                        <th style="width: 110px;">Experience</th>
+                                        <th>Core Focus Gaps / Notes</th>
+                                        <th style="width: 100px; text-align: center;">Details</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="ranked-candidates-rows">
+                                    <!-- Rendered dynamically -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+            </section>
+        </main>
+    </div>
+
+    <!-- Right Slide-out Drawer Panel for Deep-dive Report -->
+    <div class="drawer-overlay" id="drawer-overlay"></div>
+    <div class="drawer" id="report-drawer">
+        <div class="drawer-header">
+            <div>
+                <h2 id="drawer-cand-name">Candidate Name</h2>
+                <span class="drawer-subtitle" id="drawer-cand-file">resume.pdf</span>
+            </div>
+            <button class="close-drawer-btn" id="btn-close-drawer">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+        
+        <div class="drawer-body">
+            
+            <!-- Quick Summary Panel -->
+            <div class="drawer-summary-row">
+                <div class="drawer-kpi">
+                    <span class="d-kpi-label">Match Score</span>
+                    <h3 id="d-res-score">85%</h3>
+                </div>
+                <div class="drawer-kpi">
+                    <span class="d-kpi-label">Confidence</span>
+                    <h3 id="d-res-confidence">88%</h3>
+                </div>
+                <div class="drawer-kpi">
+                    <span class="d-kpi-label">Recommendation</span>
+                    <h3 id="d-res-recommendation" style="font-size: 15px;">Proceed to Interview</h3>
+                </div>
+            </div>
+
+            <!-- Agent Summary Text -->
+            <div class="drawer-section mt-16">
+                <h4>Executive Agent Assessment</h4>
+                <p id="d-res-reasoning" class="assessment-text">...</p>
+            </div>
+
+            <!-- Flags checklist -->
+            <div id="d-res-flags-container" class="drawer-section drawer-warning-section hidden">
+                <h4><i class="fa-solid fa-triangle-exclamation"></i> Gaps & Anomalies Flags</h4>
+                <div class="flags-pills" id="d-res-flags"></div>
+            </div>
+
+            <!-- Tabs in Drawer -->
+            <div class="drawer-tabs">
+                <button class="d-tab active" data-tab-id="d-skills-tab"><i class="fa-solid fa-puzzle-piece"></i> Skills Matrix</button>
+                <button class="d-tab" data-tab-id="d-experience-tab"><i class="fa-solid fa-briefcase"></i> Work & Edu</button>
+                <button class="d-tab" data-tab-id="d-interview-tab"><i class="fa-solid fa-clipboard-question"></i> Custom Interview Guide</button>
+            </div>
+
+            <!-- Tab Contents -->
+            <div id="d-skills-tab" class="drawer-tab-content active">
+                <div class="drawer-split-grid">
+                    <div>
+                        <h5>Matched Skills (Required)</h5>
+                        <div class="alignment-grid" id="d-skills-matched-required"></div>
+                    </div>
+                    <div>
+                        <h5>Missing Skills (Required)</h5>
+                        <div class="alignment-grid" id="d-skills-missing-required"></div>
+                    </div>
+                </div>
+                <div class="divider"></div>
+                <div>
+                    <h5>All Extracted Skills</h5>
+                    <div class="extracted-skills-flex" id="d-skills-all-extracted"></div>
+                </div>
+            </div>
+
+            <div id="d-experience-tab" class="drawer-tab-content">
+                <h5>Experience Evaluation</h5>
+                <p id="d-exp-progression" style="font-size:12px; color:var(--text-secondary); line-height:1.5; margin-bottom:12px;"></p>
+                <div class="timeline" id="d-exp-timeline"></div>
+                
+                <h5 style="margin-top:20px;">Education</h5>
+                <div class="edu-flex-list" id="d-edu-list"></div>
+            </div>
+
+            <div id="d-interview-tab" class="drawer-tab-content">
+                <p style="font-size:12px; color:var(--text-secondary); line-height:1.5; margin-bottom:12px;">These structured questions are compiled dynamically by the Decision Synthesizer Agent to target specific semantic missing points.</p>
+                <div class="interview-guide" id="d-interview-questions-list"></div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="/static/app.js"></script>
+</body>
+</html>
